@@ -1,65 +1,85 @@
 import Head from 'next/head'
+import React from 'react'
 import styles from '../styles/Home.module.css'
+import axios from 'axios'
+
+const hostUrl = 'http://localhost:8080'
+
+const client = axios.create({
+  baseURL: hostUrl,
+})
+
+const zipCodeRegex = /^\d{5}(?:[-\s]\d{4})?$/
+
+const WeatherDisplay = ({ name, weather, main, wind }) => {
+  console.log(weather)
+  console.log(main)
+  console.log(wind)
+  return (
+    <ul>
+      <li><h1>Location: {name}</h1></li>
+      <li>
+        <h3>Summary:</h3>
+        {weather.forEach(w => {
+          <p>{w.main} - {w.description}</p>
+        })}
+      </li>
+      <li>
+        <h3>Temperature:</h3>
+        <p>{main.temp}</p>
+      </li>
+      <li>
+        <h3>Wind:</h3>
+        <p></p>
+      </li>
+    </ul>
+  )
+
+}
 
 export default function Home() {
+  const [zipCode, setZipCode] = React.useState('')
+  const [weatherData, setWeatherData] = React.useState(undefined)
+  const [error, setError] = React.useState('')
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+
+    if(!zipCodeRegex.test(zipCode)) {
+      setError('Invalid zip code, please provide a value in the format of 12345.')
+    }
+
+    client.get('/' + zipCode).then(response => {
+      if(response.status === 400) {
+        setError('Invalid zip code, please provide a value in the format of 12345.')
+      }
+      setWeatherData(response.data)
+      setError('')
+    }).catch(e => {
+      console.log(e)
+    })
+  }
+
+  const handleChange = (e) => {
+    e.preventDefault()
+    setZipCode(e.target.value)
+  }
+
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    <>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Please enter a zip code to fetch the weather:
+        </label>
+        <input type="text" name="zipcode" value={zipCode} onChange={handleChange} />
+        <input type="submit" value="Submit" />
+      </form>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
-    </div>
+      {error && <p>{error}</p>}
+      {!weatherData && !error ? null : 
+        <WeatherDisplay name={weatherData.name} weather={weatherData.weather} main={weatherData.main} wind={weatherData.wind} />
+      }
+    </>
   )
 }
